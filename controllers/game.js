@@ -1,6 +1,6 @@
 const {gameService, walletService} = require('../services');
 
-//TODO reverse walletService on error if necessary
+
 const play = (req, res, next) => {
     try {
         const {bet} = req.body;
@@ -10,7 +10,15 @@ const play = (req, res, next) => {
         }
         walletService.deductAmount(bet);
 
-        const {matrix, winnings} = gameService.spin(bet);
+        let playResult;
+        try {
+            playResult = gameService.spin(bet);
+        } catch (error) {
+            walletService.addAmount(bet); // revert bet amount
+            return next(error);
+        }
+
+        const {matrix, winnings} = playResult;
         walletService.addAmount(winnings);
 
         res.json({matrix, winnings});
@@ -28,7 +36,15 @@ const sim = (req, res, next) => {
         }
         walletService.deductAmount(count * bet);
 
-        const {totalWinnings, netResult} = gameService.simulateSpins(count, bet);
+        let simResult;
+        try {
+            simResult = gameService.simulateSpins(count, bet);
+        } catch (error) {
+            walletService.addAmount(count * bet); // revert bet amount
+            return next(error);
+        }
+
+        const {totalWinnings, netResult} = simResult;
         walletService.addAmount(totalWinnings);
 
         res.json({totalWinnings, netResult});

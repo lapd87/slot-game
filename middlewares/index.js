@@ -1,7 +1,7 @@
 const {validator, playSchema, simSchema, amountSchema} = require('./validation');
 
 
-const errorHandler = (err, req, res) => {
+const errorHandler = (err, req, res, next) => {
     if (err.isJoi) {
         return res.status(400).json({
             error: 'Bad Request',

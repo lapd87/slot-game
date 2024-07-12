@@ -7,7 +7,7 @@ const playSchema = Joi.object({
 });
 
 const simSchema = Joi.object({
-    count: Joi.number().integer().positive().min(MIN_BET).max(MAX_BET).required(),
+    count: Joi.number().integer().positive().min(1).required(),
     bet: Joi.number().integer().positive().min(1).max(MAX_SIM_COUNT).required()
 });
 

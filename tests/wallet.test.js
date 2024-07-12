@@ -17,7 +17,7 @@ describe('Wallet API', () => {
             });
     });
 
-    it('should should throw deposit money error', (done) => {
+    it('should throw deposit money positive number error', (done) => {
         chai.request(app)
             .post('/wallet/deposit')
             .send({amount: -100})
@@ -27,6 +27,20 @@ describe('Wallet API', () => {
                     .that.equals('Bad Request');
                 expect(res.body).to.have.property('message')
                     .that.equals('"amount" must be a positive number');
+                done();
+            });
+    });
+
+    it('should throw deposit money error', (done) => {
+        chai.request(app)
+            .post('/wallet/deposit')
+            .send({amount: "a"})
+            .end((err, res) => {
+                expect(res).to.have.status(400);
+                expect(res.body).to.have.property('error')
+                    .that.equals('Bad Request');
+                expect(res.body).to.have.property('message')
+                    .that.equals('"amount" must be a number');
                 done();
             });
     });
