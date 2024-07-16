@@ -14,5 +14,11 @@ const getBalance = () => {
     return balance;
 };
 
+const resetWalletDB = () => {
+    if (process.env.NODE_ENV !== "test") return;
 
-module.exports = {deductAmount, addAmount, getBalance};
+    balance = 0;
+}
+
+
+module.exports = {deductAmount, addAmount, getBalance, resetWalletDB};

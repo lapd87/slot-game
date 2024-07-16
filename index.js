@@ -1,4 +1,3 @@
-require("dotenv").config();
 const express = require('express');
 const {gameRouter, walletRouter} = require('./routes');
 const setupSwagger = require('./swagger');

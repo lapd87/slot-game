@@ -1,301 +1,199 @@
 const chai = require('chai');
-const chaiHttp = require('chai-http');
-const app = require('../index');
-const {MAX_BET, MIN_BET} = require('../config');
+const {
+    WIN_MULTIPLIER,
+    WHEELS_COUNT,
+    WHEELS_VISIBLE_POSITIONS,
+    WHEELS_SIZE,
+    UNIQUE_SYMBOLS
+} = require("../config");
+const {gameService, resetDB} = require('../services');
+const {spin, getRTP, initializeWheels, calculateWinnings} = gameService;
 const {expect} = chai;
 
-chai.use(chaiHttp);
 
-describe('Game API', () => {
-    //Testing /rtp API before played games
-    it('should get RTP 0', (done) => {
-        chai.request(app)
-            .get('/rtp')
-            .end((err, res) => {
-                expect(res).to.have.status(200);
-                expect(res.body).to.have.property('rtp')
-                    .that.equals(0);
-                done();
-            });
+//Testing gameService functions
+describe('Game Service Functions', () => {
+    const RANDOM_ITERATIONS = 10;
+
+    //Testing calculateWinnings
+    it('calculateWinnings should have 1st row winnings', () => {
+        const matrix = [
+            ['1', '1', '1'],
+            ['4', '5', '6'],
+            ['7', '7', '9']
+        ];
+        const bet = 10;
+
+        const result = calculateWinnings(matrix, bet);
+        expect(result).to.be.equal(bet * WIN_MULTIPLIER);
     });
 
-    // Add a balance before running the next tests
-    const INITIAL_AMOUNT = 1000;
-    before((done) => {
-        chai.request(app)
-            .post('/wallet/deposit')
-            .send({amount: INITIAL_AMOUNT})  // Add a sufficient amount for testing
-            .end((err, res) => {
-                if (err) return done(err);
-                expect(res).to.have.status(200);
-                expect(res.body).to.have.property('totalBalance').that.equals(1000);
-                done();
-            });
+    it('calculateWinnings should have 2nd row winnings', () => {
+        const matrix = [
+            ['1', '1', '3'],
+            ['5', '5', '5'],
+            ['7', '9', '9']
+        ];
+        const bet = 10;
+
+        const result = calculateWinnings(matrix, bet);
+        expect(result).to.be.equal(bet * WIN_MULTIPLIER);
     });
 
-    //Testing /play API
-    it('should play a single game', (done) => {
-        chai.request(app)
-            .post('/play')
-            .send({bet: 10})
-            .end((err, res) => {
-                expect(res).to.have.status(200);
-                expect(res.body).to.have.property('matrix');
-                expect(res.body).to.have.property('winnings');
-                done();
-            });
+    it('calculateWinnings should have 3rd row winnings', () => {
+        const matrix = [
+            ['12', '1', '1'],
+            ['4', '5', '6'],
+            ['7', '7', '7']
+        ];
+        const bet = 10;
+
+        const result = calculateWinnings(matrix, bet);
+        expect(result).to.be.equal(bet * WIN_MULTIPLIER);
     });
 
-    it('should throw bet is required error', (done) => {
-        chai.request(app)
-            .post('/play')
-            .send({})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"bet" is required');
-                done();
-            });
+    it('calculateWinnings should have 2 row winnings', () => {
+        const matrix = [
+            ['1', '1', '1'],
+            ['4', '5', '6'],
+            ['7', '7', '7']
+        ];
+        const bet = 10;
+
+        const result = calculateWinnings(matrix, bet);
+        expect(result).to.be.equal(2 * bet * WIN_MULTIPLIER);
     });
 
-    it('should throw bet amount positive number error', (done) => {
-        chai.request(app)
-            .post('/play')
-            .send({bet: -10})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"bet" must be a positive number');
-                done();
-            });
+    it('calculateWinnings should have 2 row winnings', () => {
+        const matrix = [
+            ['1', '1', '2'],
+            ['5', '5', '5'],
+            ['7', '7', '7']
+        ];
+        const bet = 10;
+
+        const result = calculateWinnings(matrix, bet);
+        expect(result).to.be.equal(2 * bet * WIN_MULTIPLIER);
     });
 
-    it('should throw bet amount number error', (done) => {
-        chai.request(app)
-            .post('/play')
-            .send({bet: "a"})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"bet" must be a number');
-                done();
-            });
+    it('calculateWinnings should have 2 row winnings', () => {
+        const matrix = [
+            ['1', '1', '1'],
+            ['6', '6', '6'],
+            ['7', '8', '7']
+        ];
+        const bet = 10;
+
+        const result = calculateWinnings(matrix, bet);
+        expect(result).to.be.equal(2 * bet * WIN_MULTIPLIER);
     });
 
-    it('should throw bet amount positive number error', (done) => {
-        chai.request(app)
-            .post('/play')
-            .send({bet: 0})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"bet" must be a positive number');
-                done();
-            });
+    it('calculateWinnings should have 3 row winnings', () => {
+        const matrix = [
+            ['1', '1', '1'],
+            ['4', '4', '4'],
+            ['7', '7', '7']
+        ];
+        const bet = 10;
+
+        const result = calculateWinnings(matrix, bet);
+        expect(result).to.be.equal(3 * bet * WIN_MULTIPLIER);
     });
 
-    it('should throw bet amount safe number error', (done) => {
-        chai.request(app)
-            .post('/play')
-            .send({bet: Number.MAX_VALUE})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"bet" must be a safe number');
-                done();
-            });
+    it('calculateWinnings should have 1 row mixed symbols winnings', () => {
+        const matrix = [
+            ['ヅ', 'ヅ', 'ヅ'],
+            [5, '5', 5],
+            ['7', 7, '7']
+        ];
+        const bet = 10;
+
+        const result = calculateWinnings(matrix, bet);
+        expect(result).to.be.equal(bet * WIN_MULTIPLIER);
     });
 
-    it('should throw bet amount max error', (done) => {
-        chai.request(app)
-            .post('/play')
-            .send({bet: MAX_BET + 1})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals(`"bet" must be less than or equal to ${MAX_BET}`);
-                done();
-            });
+    it('calculateWinnings should have no winnings', () => {
+        const matrix = [
+            ['ヅ', 'ヅ', 'ッ'],
+            ['4', '5', '6'],
+            ['7', '8', '7']
+        ];
+        const bet = 10;
+
+        const result = calculateWinnings(matrix, bet);
+        expect(result).to.be.equal(0);
     });
 
-    it('should throw bet amount min error', (done) => {
-        chai.request(app)
-            .post('/play')
-            .send({bet: MIN_BET - 1})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.satisfies((msg) => {
-                    return msg === `"bet" must be greater than or equal to ${MIN_BET}`
-                        || msg === '"bet" must be a positive number';
-                });
-                done();
-            });
+    it('calculateWinnings should work with other matrices and have 1 row winnings', () => {
+        const matrix = [
+            ['ヅ', 'ヅ', 'ッ'],
+            ['4', '5', '6'],
+            ['4', '5', '6'],
+            ['7', '7', '7']
+        ];
+        const bet = 10;
+
+        const result = calculateWinnings(matrix, bet);
+        expect(result).to.be.equal(bet * WIN_MULTIPLIER);
     });
 
-    it('should throw bet amount integer number error', (done) => {
-        chai.request(app)
-            .post('/play')
-            .send({bet: MAX_BET - MIN_BET + 0.1})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"bet" must be an integer');
-                done();
-            });
+    it('calculateWinnings should work with other matrices and have 1 row winnings', () => {
+        const matrix = [
+            ['ヅ', 'ヅ', 'ッ', '1'],
+            ['4', '5', '6', 'a'],
+            ['7', '7', '7', '7']
+        ];
+        const bet = 10;
+
+        const result = calculateWinnings(matrix, bet);
+        expect(result).to.be.equal(bet * WIN_MULTIPLIER);
     });
 
-    //Testing /sim API
-    it('should simulate multiple games', (done) => {
-        chai.request(app)
-            .post('/sim')
-            .send({count: 10, bet: 10})
-            .end((err, res) => {
-                expect(res).to.have.status(200);
-                expect(res.body).to.have.property('totalWinnings');
-                expect(res.body).to.have.property('netResult');
-                done();
-            });
+    //Testing initializeWheels
+    it('initializeWheels should have correct wheels', () => {
+        let iterations = RANDOM_ITERATIONS;
+
+        while (iterations-- > 0) {
+            const wheels = initializeWheels();
+            expect(wheels.length).to.equal(WHEELS_COUNT);
+
+            for (let i = 0; i < wheels.length; i++) {
+                const currentWheel = wheels[i];
+                expect(currentWheel.length).to.equal(WHEELS_SIZE);
+                expect(new Set(currentWheel).size).to.equal(UNIQUE_SYMBOLS.length);
+            }
+        }
     });
 
-    it('should throw bet is required error', (done) => {
-        chai.request(app)
-            .post('/sim')
-            .send({count: 10})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"bet" is required');
-                done();
-            });
+    //Testing spin
+    it('spin should have correct matrix size', () => {
+        const {matrix} = spin();
+        expect(matrix.length).to.equal(WHEELS_COUNT);
+
+        for (let i = 0; i < matrix.length; i++) {
+            expect(matrix[i].length).to.equal(WHEELS_VISIBLE_POSITIONS);
+        }
     });
 
-    it('should throw count is required error', (done) => {
-        chai.request(app)
-            .post('/sim')
-            .send({bet: 10})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"count" is required');
-                done();
-            });
+
+    //Testing getRTP
+    it('getRTP should have max 2 decimal signs', () => {
+        const rtp = getRTP().toString();
+
+        const decimalSignIndexFromEnd = rtp.length - rtp.indexOf(".");
+        expect(decimalSignIndexFromEnd).to.be.lessThanOrEqual(3);
     });
 
-    it('should throw count positive number error', (done) => {
-        chai.request(app)
-            .post('/sim')
-            .send({count: -10, bet: 10})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"count" must be a positive number');
-                done();
-            });
+    it('getRTP should initially be 0', () => {
+        resetDB();
+
+        expect(getRTP()).to.equal(0);
     });
 
-    it('should throw count number error', (done) => {
-        chai.request(app)
-            .post('/sim')
-            .send({count: "a", bet: 10})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"count" must be a number');
-                done();
-            });
-    });
 
-    it('should throw count positive number error', (done) => {
-        chai.request(app)
-            .post('/sim')
-            .send({count: 0, bet: 10})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"count" must be a positive number');
-                done();
-            });
+    //Reset DB/local variables to initial state
+    after((done) => {
+        resetDB();
+        done();
     });
-
-    it('should throw count safe number error', (done) => {
-        chai.request(app)
-            .post('/sim')
-            .send({count: Number.MAX_VALUE, bet: 10})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"count" must be a safe number');
-                done();
-            });
-    });
-
-    it('should throw insufficient balance error', (done) => {
-        chai.request(app)
-            .post('/sim')
-            .send({count: INITIAL_AMOUNT, bet: 10})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Insufficient balance');
-                done();
-            });
-    });
-
-    it('should throw count integer number error', (done) => {
-        chai.request(app)
-            .post('/sim')
-            .send({count: 1.5, bet: 10})
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body).to.have.property('error')
-                    .that.equals('Bad Request');
-                expect(res.body).to.have.property('message')
-                    .that.equals('"count" must be an integer');
-                done();
-            });
-    });
-
-    //Testing /rtp API after played games
-    it('should get RTP with max 2 decimal signs', (done) => {
-        chai.request(app)
-            .get('/rtp')
-            .end((err, res) => {
-                expect(res).to.have.status(200);
-                expect(res.body).to.have.property('rtp');
-                const rtp = res.body.rtp.toString();
-                const decimalSignIndexFromEnd = rtp.length - rtp.indexOf(".");
-                expect(decimalSignIndexFromEnd).to.be.lessThanOrEqual(3);
-                done();
-            });
-    });
-
 });

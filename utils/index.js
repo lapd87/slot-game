@@ -9,6 +9,7 @@ const getRandomInRange = function (min, max) {
 };
 
 const shuffleArrayRandomly = function (unruffledArray) {
+    //TODO random sort can equal initial!!!
     return unruffledArray
         .map(value => ({value, sort: getRandomInRange(0, unruffledArray.length)}))
         .sort((a, b) => a.sort - b.sort)

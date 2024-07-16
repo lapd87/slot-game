@@ -22,6 +22,8 @@ const initializeWheels = () => {
 
         wheels[i] = shuffleArrayRandomly(wheels[i]);
     }
+
+    if (process.env.NODE_ENV === "test") return wheels;
 };
 
 const calculateWinnings = (matrix, bet) => {
@@ -80,5 +82,13 @@ const getRTP = () => {
     return Math.round(rtp * 100 + Number.EPSILON) / 100
 };
 
+const resetGameDB = () => {
+    if (process.env.NODE_ENV !== "test") return;
 
-module.exports = {spin, simulateSpins, getRTP};
+    rtpTotalBets = 0;
+    rtpTotalWinnings = 0;
+    wheels = [];
+}
+
+
+module.exports = {spin, simulateSpins, getRTP, initializeWheels, calculateWinnings, resetGameDB};
